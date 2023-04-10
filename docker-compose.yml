@@ -1,0 +1,49 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: user
+        uid: 1000
+      context: ./
+      dockerfile: ./docker/php/Dockerfile
+    image: requizit:1.0
+    container_name: requizit-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    links:
+        -   db
+    networks:
+      - requizit
+  db:
+    image: mariadb:10.6
+    container_name: requizit-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: '${DB_DATABASE}'
+      MARIADB_ROOT_PASSWORD: '${DB_PASSWORD}'
+      MARIADB_PASSWORD: '${DB_PASSWORD}'
+      MARIADB_USER: '${DB_USERNAME}'
+      MARIADB_ALLOW_EMPTY_PASSWORD: 1
+    ports:
+      - 33306:3306
+    volumes:
+      - ./docker/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - requizit
+  nginx:
+    image: nginx:1.21-alpine
+    container_name: requizit-nginx
+    restart: unless-stopped
+    ports:
+      - 8800:80
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - requizit
+networks:
+  requizit:
+    driver: bridge
